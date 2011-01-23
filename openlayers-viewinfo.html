@@ -1,0 +1,71 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <!-- css code and ideas from http://openlayers.org/dev/examples/fullScreen.html -->
+  <!-- this file is CC0 licensed -->
+  <head>
+    <title>OpenLayers Example</title>
+    <link rel="stylesheet" href="./lib/openlayers/theme/default/style.css" type="text/css" />
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        #text {
+            position: absolute;
+            bottom: 1em;
+            left: 1em;
+            width: 512px;
+            z-index: 20000;
+            background-color: white;
+            padding: 0 0.5em 0.5em 0.5em;
+        }
+    </style>
+    <script src="./lib/openlayers/OpenLayers.js"></script>
+    <script type="text/javascript">
+        var map, layer;
+        function moveEnd() {
+            var text = "";
+            text += "zoom = " + map.getZoom();
+            text += ", centre = " + 
+                map.getCenter()
+                    .transform(map.getProjectionObject(), //transform the map unit coordinates to LL WGS84
+                        new OpenLayers.Projection("EPSG:4326"))
+                    .lat + ", " + 
+                map.getCenter()
+                    .transform(map.getProjectionObject(), 
+                        new OpenLayers.Projection("EPSG:4326"))
+                    .lon;
+            text += "<br /> bbox = " + 
+                map.getExtent()
+                .transform(map.getProjectionObject(), 
+                        new OpenLayers.Projection("EPSG:4326"))
+                .toBBOX();
+            document.getElementById("text").innerHTML = text;
+        }
+        function init(){
+            map = new OpenLayers.Map('map', {
+                eventListeners: {
+                    "moveend": moveEnd
+                }
+            });
+            mapnik = new OpenLayers.Layer.OSM( "OSM Mapnik", "http://tile.openstreetmap.org/${z}/${x}/${y}.png");
+            map.addLayer(mapnik);
+            map.setCenter(
+                new OpenLayers.LonLat(0, 0).transform(
+                    new OpenLayers.Projection("EPSG:4326"),
+                    map.getProjectionObject()
+                ), 0
+            );
+        }
+    </script>
+  </head>
+
+  <body onload="init()">
+    <div id="map"></div>
+    <div id="text"></div>
+  </body>
+</html>
+
