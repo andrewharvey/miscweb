@@ -1,0 +1,171 @@
+<!--
+  This page licensed CC0 http://creativecommons.org/publicdomain/zero/1.0/ 
+
+  Various code snippets adapted from,
+    http://polymaps.org/ex/bing.html
+    http://polymaps.org/ex/tiles.html
+    https://github.com/simplegeo/polymaps/blob/master/src/Arrow.js
+-->
+<!--
+  TODO:
+  * Need to see if http://polymaps.org/docs/transform.html is better, otherwise
+    will need to modify polymaps.js as my current method of transforming the SVG
+    element isn't the proper way of doing things.
+  * Swap the map layer to nml={N,S,E,W} when yaw falls lower.
+  * Perhaps instead remove fine control and just have the 5 default views as
+    provided by the NearMap imagery, and have animations between the different
+    views, but no view points in between allowed.
+    p.s. I've got this working but need to tell polymaps to rotate the tiles for
+    the E,S,W layers.
+-->
+<html>
+  <head>
+    <script type="text/javascript" src="./lib/polymaps/polymaps.js"></script>
+    <style type="text/css">
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            background: #E5E0D9;
+        }
+
+        svg {
+            display: block;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #logo {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        #caption {
+            position: absolute;
+            right: 5px;
+            bottom: 5px;
+        }
+    </style>
+  </head>
+  <body id="map">
+    <!--<img id="logo" />-->
+    <div id="caption" />
+    <script type="text/javascript">
+    	var po = org.polymaps;
+
+	    // rotation rates
+        var yaw_step = 0.05;
+        var spin_step = (1/32)*Math.PI;
+
+        // set up the containers for the map
+    	var div = document.getElementById("map"),
+            svg = div.appendChild(po.svg("svg")),
+            g = svg.appendChild(po.svg("g"));
+
+        // set up the polymaps map
+    	var map = po.map()
+    		.container(g)
+    		.add(po.image().url(
+	    		po.url("http://www.nearmap.com/maps" + "/z={Z}&x={X}&y={Y}&nml=Vert")))
+	    	.add(po.interact())
+	    	.center({lat: 0, lon: 0})
+	    	.zoom(0);
+	    	
+        //document.getElementById("logo").src = "logo-overlay";
+        document.getElementById("caption").innerHTML = 
+            "Imagery from <a href=\"http://www.nearmap.com/\">NearMap</a> and NASA.";
+
+	    // rot is longitude of the view (2*PI for full circle)
+	    // yaw is latitude, 1 is looking straight down, 0 is flat across the plane
+	    var rot = 0;
+        var yaw = 1;
+
+        // which key was pressed down?
+        var key = {left: 0, right: 0, up: 0, down: 0};
+        var repeatTimer,
+            repeatDelay = 250,
+            repeatInterval = 50;
+
+        function keydown(e) {
+            if (e.type != "keydown" || e.ctrlKey || e.altKey || e.metaKey) return;
+
+	        switch (e.keyCode) {
+		        case 65: // left
+			        key.left = 1;
+			        break;
+		        case 69: // right
+			        key.right = 1;
+			        break;
+		        case 188: // up
+			        key.up = 1;
+			        break;
+		        case 79: // down
+			        key.down = 1;
+			        break;
+	        }
+	        
+	        updateView();
+   		    
+            if (!repeatTimer && (key.left | key.right | key.up | key.down)) {
+                repeatTimer = setInterval(updateView, repeatInterval);
+            }
+            e.preventDefault();
+	    }
+	    
+	    function keyup(e) {
+	        switch (e.keyCode) {
+                case 65: key.left = 0; break;
+                case 69: key.right = 0; break;
+                case 188: key.up = 0; break;
+                case 79: key.down = 0; break;
+                default: return;
+            }
+            if (repeatTimer && !(key.left | key.right | key.up | key.down)) {
+                repeatTimer = clearInterval(repeatTimer);
+            }
+            e.preventDefault();
+	    }
+        
+        function updateView() {
+            if (!map) return;
+
+            if (key.right)
+                rot += spin_step;
+            if (key.left)
+                rot += -spin_step;
+            if (key.up)
+                yaw += yaw_step;
+            if (key.down)
+                yaw -= yaw_step;
+                
+            // cap the yaw
+	        if (yaw > 1)
+    	        yaw = 1;
+	        if (yaw < 0.5)
+		        yaw = 0.5;
+		        
+		    // cap the rot
+		    rot = rot % (2*Math.PI);
+
+   	        var cx = map.size().x / 2;
+	        var cy = map.size().y / 2;
+	        
+		    if (rot) map.angle(rot);
+
+            // http://www.w3.org/TR/SVG/coords.html#TransformAttribute
+   		    g.setAttribute("transform",
+		        "translate(" + cx + " " + cy +
+		        ") scale(1 " + yaw + ") " +
+        		"translate(" + -cx + " " + -cy + ")");
+        }
+
+        window.addEventListener("keydown", keydown, true);
+        window.addEventListener("keyup", keyup, true);
+    </script>
+  </body>
+</html>
